@@ -21,7 +21,7 @@ jobs:
           python-version: "3.11"
 
       - name: Generar el sitio (leer feeds y armar HTML)
-run: python build_site.py
+   run: python build_site.py
       - name: Publicar en GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
