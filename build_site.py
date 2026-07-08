@@ -14,8 +14,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-FEEDS_FILE = ROOT / "feeds.json"
+ROOT = Path(__file__).resolve().parentFEEDS_FILE = ROOT / "feeds.json"
 OUT_DIR = ROOT / "site"
 MAX_ITEMS_PER_FEED = 8
 SUMMARY_MAX_CHARS = 180
