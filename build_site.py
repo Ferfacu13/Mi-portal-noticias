@@ -26,7 +26,7 @@ REQUEST_TIMEOUT = 15
 SITE_NAME = "Confluye"
 SITE_TAGLINE = "Toda la noticia, en un solo lugar."
 GA_MEASUREMENT_ID = "G-XXXXXXXXXX"      # reemplazar por tu ID de Google Analytics 4
-ADSENSE_CLIENT_ID = "ca-pub-XXXXXXXXXXXXXXXX"  # reemplazar por tu ID de AdSense
+ADSENSE_CLIENT_ID = "ca-pub-5796284292656567"  # tu ID real de AdSense
 # ---------------------------------
 
 LOGO_SVG = """<svg class="logo-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
