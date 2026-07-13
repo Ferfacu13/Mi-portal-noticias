@@ -1,30 +1,15 @@
-name: Actualizar sitio de noticias
-
-on:
-  schedule:
-    - cron: "0 */1 * * *"
-  workflow_dispatch: {}
-
-permissions:
-  contents: write
-
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Descargar el repositorio
-        uses: actions/checkout@v4
-
-      - name: Configurar Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Generar el sitio (leer feeds y armar HTML)
-        run: python build_site.py
-
-      - name: Publicar en GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./site
+{
+  "regional": [
+    { "name": "LM Neuquén", "url": "https://www.lmneuquen.com/rss/portada.xml" },
+    { "name": "Río Negro", "url": "https://www.rionegro.com.ar/feed/" }
+  ],
+  "nacional": [
+    { "name": "Infobae", "url": "https://www.infobae.com/feeds/rss/" },
+    { "name": "Clarín", "url": "https://www.clarin.com/rss/lo-ultimo/" },
+    { "name": "La Nación", "url": "https://www.lanacion.com.ar/arc/outboundfeeds/rss/" }
+  ],
+  "internacional": [
+    { "name": "BBC Mundo", "url": "https://feeds.bbci.co.uk/mundo/rss.xml" },
+    { "name": "Reuters World", "url": "https://feeds.reuters.com/Reuters/worldNews" }
+  ]
+}
