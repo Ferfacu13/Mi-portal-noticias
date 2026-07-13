@@ -33,11 +33,84 @@ def strip_tags(text: str) -> str:
     return html.unescape(text).strip()
 
 
+DIAS_ES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+MESES_ES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
+            "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
+
+
+def fecha_larga_es(dt: datetime) -> str:
+    return f"{DIAS_ES[dt.weekday()]} {dt.day} de {MESES_ES[dt.month - 1]} de {dt.year}"
+
+
 def truncate(text: str, max_chars: int) -> str:
     text = " ".join(text.split())
     if len(text) <= max_chars:
         return text
     return text[:max_chars].rsplit(" ", 1)[0] + "…"
+
+
+NS = {
+    "media": "http://search.yahoo.com/mrss/",
+    "content": "http://purl.org/rss/1.0/modules/content/",
+    "a": "http://www.w3.org/2005/Atom",
+}
+
+IMG_TAG_RE = re.compile(r'<img[^>]+src=["\']([^"\']+)["\']', re.IGNORECASE)
+
+
+def extract_image_rss(item) -> str:
+    """Busca una imagen destacada en un <item> de RSS 2.0, probando varias
+    convenciones comunes en orden de confiabilidad."""
+    enclosure = item.find("enclosure")
+    if enclosure is not None:
+        url = enclosure.get("url", "")
+        type_ = enclosure.get("type", "")
+        if url and (type_.startswith("image") or re.search(r"\.(jpg|jpeg|png|webp|gif)", url, re.IGNORECASE)):
+            return url
+
+    media_content = item.find("media:content", NS)
+    if media_content is not None and media_content.get("url"):
+        return media_content.get("url")
+
+    media_thumb = item.find("media:thumbnail", NS)
+    if media_thumb is not None and media_thumb.get("url"):
+        return media_thumb.get("url")
+
+    content_encoded = item.findtext("content:encoded", default="", namespaces=NS)
+    if content_encoded:
+        m = IMG_TAG_RE.search(content_encoded)
+        if m:
+            return m.group(1)
+
+    desc = item.findtext("description", default="")
+    if desc:
+        m = IMG_TAG_RE.search(desc)
+        if m:
+            return m.group(1)
+
+    return ""
+
+
+def extract_image_atom(entry) -> str:
+    media_content = entry.find("media:content", NS)
+    if media_content is not None and media_content.get("url"):
+        return media_content.get("url")
+
+    media_thumb = entry.find("media:thumbnail", NS)
+    if media_thumb is not None and media_thumb.get("url"):
+        return media_thumb.get("url")
+
+    for link_el in entry.findall("a:link", NS):
+        if link_el.get("rel") == "enclosure" and (link_el.get("type", "").startswith("image")):
+            return link_el.get("href", "")
+
+    summary = entry.findtext("a:summary", default="", namespaces=NS) or entry.findtext("a:content", default="", namespaces=NS)
+    if summary:
+        m = IMG_TAG_RE.search(summary)
+        if m:
+            return m.group(1)
+
+    return ""
 
 
 def fetch_feed_items(feed_url: str):
@@ -53,20 +126,29 @@ def fetch_feed_items(feed_url: str):
         link = (item.findtext("link", default="") or "").strip()
         desc = strip_tags(item.findtext("description", default=""))
         pub = item.findtext("pubDate", default="")
+        image = extract_image_rss(item)
         if title and link:
-            items.append({"title": title, "link": link, "summary": truncate(desc, SUMMARY_MAX_CHARS), "pub": pub})
+            items.append({
+                "title": title, "link": link,
+                "summary": truncate(desc, SUMMARY_MAX_CHARS),
+                "pub": pub, "image": image,
+            })
 
     # Atom fallback
     if not items:
-        ns = {"a": "http://www.w3.org/2005/Atom"}
-        for entry in root.findall(".//a:entry", ns)[:MAX_ITEMS_PER_FEED]:
-            title = strip_tags(entry.findtext("a:title", default="", namespaces=ns))
-            link_el = entry.find("a:link", ns)
+        for entry in root.findall(".//a:entry", NS)[:MAX_ITEMS_PER_FEED]:
+            title = strip_tags(entry.findtext("a:title", default="", namespaces=NS))
+            link_el = entry.find("a:link", NS)
             link = link_el.get("href") if link_el is not None else ""
-            summary = strip_tags(entry.findtext("a:summary", default="", namespaces=ns))
-            pub = entry.findtext("a:updated", default="", namespaces=ns)
+            summary = strip_tags(entry.findtext("a:summary", default="", namespaces=NS))
+            pub = entry.findtext("a:updated", default="", namespaces=NS)
+            image = extract_image_atom(entry)
             if title and link:
-                items.append({"title": title, "link": link, "summary": truncate(summary, SUMMARY_MAX_CHARS), "pub": pub})
+                items.append({
+                    "title": title, "link": link,
+                    "summary": truncate(summary, SUMMARY_MAX_CHARS),
+                    "pub": pub, "image": image,
+                })
 
     return items
 
@@ -97,12 +179,35 @@ AD_SLOT_HTML = """
 """.strip()
 
 
-def render_article(item: dict) -> str:
+CATEGORY_META = {
+    "regional": {"label": "Regional", "class": "cat-regional"},
+    "nacional": {"label": "Nacional", "class": "cat-nacional"},
+    "internacional": {"label": "Internacional", "class": "cat-internacional"},
+}
+
+
+def render_article(item: dict, cat_name: str) -> str:
+    cat = CATEGORY_META.get(cat_name, {"label": cat_name.capitalize(), "class": "cat-regional"})
+    if item.get("image"):
+        media_html = f'<img src="{html.escape(item["image"])}" alt="" loading="lazy" onerror="this.parentElement.classList.add(\'no-img\'); this.remove();">'
+    else:
+        media_html = ""
+    media_class = "card-media" if item.get("image") else "card-media no-img"
+
     return f"""
     <article class="card">
-      <h3><a href="{html.escape(item['link'])}" target="_blank" rel="noopener nofollow">{html.escape(item['title'])}</a></h3>
-      <p class="summary">{html.escape(item['summary'])}</p>
-      <div class="meta">Fuente: {html.escape(item['source'])}</div>
+      <div class="{media_class}">
+        {media_html}
+        <span class="badge {cat['class']}">{cat['label']}</span>
+      </div>
+      <div class="card-body">
+        <h3><a href="{html.escape(item['link'])}" target="_blank" rel="noopener nofollow">{html.escape(item['title'])}</a></h3>
+        <p class="summary">{html.escape(item['summary'])}</p>
+        <div class="meta">
+          <span class="source">{html.escape(item['source'])}</span>
+          <a class="read-more" href="{html.escape(item['link'])}" target="_blank" rel="noopener nofollow">Leer nota completa →</a>
+        </div>
+      </div>
     </article>
     """.strip()
 
@@ -117,12 +222,20 @@ def render_page(title: str, categories: dict, active: str) -> str:
     for cat_name, items in categories.items():
         if not items:
             continue
-        cards = "".join(render_article(it) for it in items)
-        sections.append(f'<section class="category"><h2>{cat_name.capitalize()}</h2><div class="grid">{cards}</div></section>')
+        cards = "".join(render_article(it, cat_name) for it in items)
+        icon = {"regional": "📍", "nacional": "🇦🇷", "internacional": "🌎"}.get(cat_name, "📰")
+        sections.append(
+            f'<section class="category"><div class="category-head">'
+            f'<h2><span class="cat-icon">{icon}</span>{cat_name.capitalize()}</h2>'
+            f'<span class="category-line"></span></div>'
+            f'<div class="grid">{cards}</div></section>'
+        )
         sections.append(AD_SLOT_HTML.format(client=ADSENSE_CLIENT_ID))
 
-    body = "\n".join(sections) if sections else "<p>No hay noticias disponibles en este momento.</p>"
-    updated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    body = "\n".join(sections) if sections else '<p class="empty-state">No hay noticias disponibles en este momento. Volvé a intentarlo en unos minutos.</p>'
+    now = datetime.now(timezone.utc)
+    updated = now.strftime("%d/%m/%Y %H:%M UTC")
+    updated_long = fecha_larga_es(now)
 
     return f"""<!DOCTYPE html>
 <html lang="es">
@@ -142,9 +255,13 @@ def render_page(title: str, categories: dict, active: str) -> str:
 </script>
 </head>
 <body>
+<div class="topbar">
+  <span>{updated_long}</span>
+  <span class="topbar-live"><span class="dot"></span> Actualizado {updated}</span>
+</div>
 <header class="site-header">
   <h1>{SITE_NAME}</h1>
-  <p class="tagline">Noticias regionales, nacionales e internacionales, actualizadas automáticamente.</p>
+  <p class="tagline">Noticias regionales, nacionales e internacionales, actualizadas automáticamente cada hora.</p>
   <nav>{nav_items}</nav>
 </header>
 {AD_SLOT_HTML.format(client=ADSENSE_CLIENT_ID)}
@@ -152,7 +269,7 @@ def render_page(title: str, categories: dict, active: str) -> str:
 {body}
 </main>
 <footer class="site-footer">
-  <p>Contenido agregado automáticamente a partir de fuentes públicas. Cada nota enlaza a la fuente original.</p>
+  <p>{SITE_NAME} agrega titulares de fuentes públicas y siempre enlaza a la nota original — no reproducimos el artículo completo.</p>
   <p>Última actualización: {updated}</p>
 </footer>
 </body>
