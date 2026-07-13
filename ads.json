@@ -1,0 +1,13 @@
+{
+  "_ayuda": "Cada bloque es una pauta. 'pages' controla dónde se muestra: usá ['*'] para todas las pestañas, o listá las que quieras: 'todas', 'regional', 'nacional', 'economia', 'deportes', 'internacional'. 'position' puede ser 'top' (debajo del header), 'in-feed' (entre las secciones de noticias) o 'sidebar' (columna lateral). 'side' solo aplica a 'sidebar': 'left' o 'right'. 'slot' es el ID de bloque de anuncio de AdSense (data-ad-slot) — reemplazalo por el tuyo real cuando tengas la cuenta aprobada.",
+
+  "placements": [
+    { "position": "top", "pages": ["*"], "slot": "0000000001" },
+
+    { "position": "in-feed", "pages": ["*"], "slot": "0000000002" },
+
+    { "position": "sidebar", "side": "right", "pages": ["*"], "slot": "0000000003" },
+    { "position": "sidebar", "side": "right", "pages": ["deportes"], "slot": "0000000004" },
+    { "position": "sidebar", "side": "left", "pages": ["economia", "nacional"], "slot": "0000000005" }
+  ]
+}

@@ -16,6 +16,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 FEEDS_FILE = ROOT / "feeds.json"
+ADS_FILE = ROOT / "ads.json"
 OUT_DIR = ROOT / "site"
 MAX_ITEMS_PER_FEED = 8
 SUMMARY_MAX_CHARS = 180
@@ -204,12 +205,38 @@ AD_SLOT_HTML = """
   <ins class="adsbygoogle"
        style="display:block"
        data-ad-client="{client}"
-       data-ad-slot="0000000000"
+       data-ad-slot="{slot}"
        data-ad-format="auto"
        data-full-width-responsive="true"></ins>
   <script>(adsbygoogle = window.adsbygoogle || []).push({{}});</script>
 </div>
 """.strip()
+
+
+def load_ads_config() -> list:
+    try:
+        data = json.loads(ADS_FILE.read_text(encoding="utf-8"))
+        return data.get("placements", [])
+    except FileNotFoundError:
+        return []
+
+
+def ads_for(ads_config: list, position: str, page_id: str, side: str = None) -> list:
+    """Filtra las pautas que corresponden a esta posición y a esta pestaña."""
+    result = []
+    for p in ads_config:
+        if p.get("position") != position:
+            continue
+        if position == "sidebar" and side is not None and p.get("side", "right") != side:
+            continue
+        pages = p.get("pages", ["*"])
+        if "*" in pages or page_id in pages:
+            result.append(p)
+    return result
+
+
+def render_ad(placement: dict) -> str:
+    return AD_SLOT_HTML.format(client=ADSENSE_CLIENT_ID, slot=placement.get("slot", "0000000000"))
 
 
 CATEGORY_META = {
@@ -247,13 +274,15 @@ def render_article(item: dict, cat_name: str) -> str:
     """.strip()
 
 
-def render_page(title: str, categories: dict, active: str, all_cats: list) -> str:
+def render_page(title: str, categories: dict, active: str, all_cats: list, ads_config: list) -> str:
     nav_categories = ["todas"] + all_cats
     nav_items = "".join(
         f'<a href="{"index.html" if c == "todas" else c + ".html"}" class="{"active" if c == active else ""}">'
         f'{"Todas" if c == "todas" else CATEGORY_META.get(c, {"label": c.capitalize()})["label"]}</a>'
         for c in nav_categories
     )
+
+    in_feed_ads = [render_ad(p) for p in ads_for(ads_config, "in-feed", active)]
 
     sections = []
     for cat_name, items in categories.items():
@@ -267,12 +296,19 @@ def render_page(title: str, categories: dict, active: str, all_cats: list) -> st
             f'<span class="category-line"></span></div>'
             f'<div class="grid">{cards}</div></section>'
         )
-        sections.append(AD_SLOT_HTML.format(client=ADSENSE_CLIENT_ID))
+        sections.extend(in_feed_ads)
 
     body = "\n".join(sections) if sections else '<p class="empty-state">No hay noticias disponibles en este momento. Volvé a intentarlo en unos minutos.</p>'
     now = datetime.now(timezone.utc)
     updated = now.strftime("%d/%m/%Y %H:%M UTC")
     updated_long = fecha_larga_es(now)
+
+    top_ads = "".join(render_ad(p) for p in ads_for(ads_config, "top", active))
+    left_ads = [render_ad(p) for p in ads_for(ads_config, "sidebar", active, side="left")]
+    right_ads = [render_ad(p) for p in ads_for(ads_config, "sidebar", active, side="right")]
+
+    aside_left = f'<aside class="sidebar sidebar-left">{"".join(left_ads)}</aside>' if left_ads else ""
+    aside_right = f'<aside class="sidebar sidebar-right">{"".join(right_ads)}</aside>' if right_ads else ""
 
     return f"""<!DOCTYPE html>
 <html lang="es">
@@ -304,10 +340,14 @@ def render_page(title: str, categories: dict, active: str, all_cats: list) -> st
   <p class="tagline">{SITE_TAGLINE}</p>
   <nav>{nav_items}</nav>
 </header>
-{AD_SLOT_HTML.format(client=ADSENSE_CLIENT_ID)}
+{top_ads}
+<div class="page-layout">
+{aside_left}
 <main>
 {body}
 </main>
+{aside_right}
+</div>
 <footer class="site-footer">
   <p>{SITE_NAME} agrega titulares de fuentes públicas y siempre enlaza a la nota original — no reproducimos el artículo completo.</p>
   <p>Última actualización: {updated}</p>
@@ -318,6 +358,7 @@ def render_page(title: str, categories: dict, active: str, all_cats: list) -> st
 
 def main():
     feeds = json.loads(FEEDS_FILE.read_text(encoding="utf-8"))
+    ads_config = load_ads_config()
     OUT_DIR.mkdir(exist_ok=True)
 
     css_src = Path(__file__).resolve().parent / "style_template.css"
@@ -331,13 +372,19 @@ def main():
     all_cats = list(feeds.keys())
 
     # Página "todas" (index)
-    (OUT_DIR / "index.html").write_text(render_page("Inicio", categories, "todas", all_cats), encoding="utf-8")
+    (OUT_DIR / "index.html").write_text(
+        render_page("Inicio", categories, "todas", all_cats, ads_config), encoding="utf-8"
+    )
 
     # Páginas por categoría
     for cat_name in categories:
         single = {cat_name: categories[cat_name]}
         label = CATEGORY_META.get(cat_name, {"label": cat_name.capitalize()})["label"]
-        (OUT_DIR / f"{cat_name}.html").write_text(render_page(label, single, cat_name, all_cats), encoding="utf-8")
+        (OUT_DIR / f"{cat_name}.html").write_text(
+            render_page(label, single, cat_name, all_cats, ads_config), encoding="utf-8"
+        )
+
+    print("Sitio generado en", OUT_DIR)
 
     print("Sitio generado en", OUT_DIR)
 
