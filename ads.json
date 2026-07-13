@@ -5,9 +5,12 @@
     { "position": "top", "pages": ["*"], "slot": "0000000001" },
 
     { "position": "in-feed", "pages": ["*"], "slot": "0000000002" },
+    { "position": "in-feed", "pages": ["*"], "slot": "0000000006" },
 
     { "position": "sidebar", "side": "right", "pages": ["*"], "slot": "0000000003" },
+    { "position": "sidebar", "side": "right", "pages": ["*"], "slot": "0000000007" },
     { "position": "sidebar", "side": "right", "pages": ["deportes"], "slot": "0000000004" },
+    { "position": "sidebar", "side": "left", "pages": ["*"], "slot": "0000000008" },
     { "position": "sidebar", "side": "left", "pages": ["economia", "nacional"], "slot": "0000000005" }
   ]
 }

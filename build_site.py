@@ -34,6 +34,14 @@ LOGO_SVG = """<svg class="logo-mark" viewBox="0 0 48 48" xmlns="http://www.w3.or
   <circle cx="24" cy="12" r="4.5" fill="#fff"/>
 </svg>"""
 
+FOOTER_LINKS_HTML = (
+    '<nav class="footer-links">'
+    '<a href="aviso-legal.html">Aviso legal y derechos de autor</a>'
+    '<a href="privacidad.html">Política de privacidad</a>'
+    '<a href="preguntas-frecuentes.html">Preguntas frecuentes</a>'
+    '</nav>'
+)
+
 
 def strip_tags(text: str) -> str:
     text = re.sub(r"<[^>]+>", "", text or "")
@@ -274,6 +282,166 @@ def render_article(item: dict, cat_name: str) -> str:
     """.strip()
 
 
+def render_static_page(title: str, body_html: str, all_cats: list, meta_desc: str) -> str:
+    """Páginas institucionales (legal, privacidad, FAQ): mismo header/nav/footer
+    que el resto del sitio, pero sin grilla de noticias ni pauta publicitaria."""
+    nav_categories = ["todas"] + all_cats
+    nav_items = "".join(
+        f'<a href="{"index.html" if c == "todas" else c + ".html"}">'
+        f'{"Todas" if c == "todas" else CATEGORY_META.get(c, {"label": c.capitalize()})["label"]}</a>'
+        for c in nav_categories
+    )
+    updated = datetime.now(timezone.utc).strftime("%d/%m/%Y %H:%M UTC")
+
+    return f"""<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{title} - {SITE_NAME}</title>
+<meta name="description" content="{meta_desc}">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="brand">
+    {LOGO_SVG}
+    <h1>{SITE_NAME}</h1>
+  </div>
+  <p class="tagline">{SITE_TAGLINE}</p>
+  <nav>{nav_items}</nav>
+</header>
+<main class="static-page">
+{body_html}
+</main>
+<footer class="site-footer">
+  {FOOTER_LINKS_HTML}
+  <p>{SITE_NAME} agrega titulares de fuentes públicas y siempre enlaza a la nota original — no reproducimos el artículo completo.</p>
+  <p>Última actualización: {updated}</p>
+</footer>
+</body>
+</html>"""
+
+
+def render_aviso_legal() -> str:
+    return f"""
+    <article class="legal">
+      <h1>Aviso legal y derechos de autor</h1>
+      <p>Este aviso regula el uso del sitio {SITE_NAME} (en adelante, "el Sitio").</p>
+
+      <h2>1. Qué es {SITE_NAME}</h2>
+      <p>{SITE_NAME} es un agregador automático de noticias: recopila títulos y copetes
+      breves publicados en los canales RSS públicos de distintos medios de comunicación,
+      y enlaza siempre a la nota original en el sitio del medio que la publicó.</p>
+
+      <h2>2. Propiedad del contenido de terceros</h2>
+      <p>Los títulos, copetes, imágenes y todo otro contenido mostrado que provenga de
+      un medio de tercero le pertenecen a ese medio o a sus autores. {SITE_NAME} no
+      reclama ninguna titularidad sobre ese contenido, no lo aloja de forma completa y
+      en todos los casos identifica la fuente y enlaza directamente a la nota original.</p>
+      <p>La reproducción se limita al título y a un copete breve (fair use / derecho de
+      cita), conforme al artículo 10 de la Ley 11.723 de Propiedad Intelectual de la
+      República Argentina, que permite la reproducción de fragmentos breves con fines
+      informativos siempre que se cite la fuente.</p>
+
+      <h2>3. Solicitud de baja de contenido</h2>
+      <p>Si sos titular de un medio y preferís que tu contenido no aparezca en
+      {SITE_NAME}, o si detectás un error en cómo mostramos tu material, escribinos a
+      <strong>legal@confluye.com.ar</strong> (reemplazar por tu casilla real) indicando
+      la URL de la nota en cuestión. Vamos a dar de baja el contenido a la brevedad.</p>
+
+      <h2>4. Enlaces externos</h2>
+      <p>El Sitio contiene enlaces a sitios de terceros. {SITE_NAME} no controla ni se
+      responsabiliza por el contenido, disponibilidad o políticas de esos sitios.</p>
+
+      <h2>5. Limitación de responsabilidad</h2>
+      <p>El Sitio se ofrece "tal cual". {SITE_NAME} no garantiza la exactitud,
+      actualidad o disponibilidad permanente del contenido agregado, dado que depende
+      de la disponibilidad de los canales RSS de terceros.</p>
+
+      <h2>6. Legislación aplicable</h2>
+      <p>Este aviso se rige por las leyes de la República Argentina.</p>
+    </article>
+    """.strip()
+
+
+def render_privacidad() -> str:
+    return f"""
+    <article class="legal">
+      <h1>Política de privacidad</h1>
+      <p>Última revisión: {fecha_larga_es(datetime.now(timezone.utc))}.</p>
+
+      <h2>1. Datos que recolectamos</h2>
+      <p>{SITE_NAME} no requiere registro ni cuenta de usuario, por lo que no
+      recolectamos datos personales de forma directa. Utilizamos:</p>
+      <ul>
+        <li><strong>Google Analytics</strong>: estadísticas anónimas de visitas
+        (páginas vistas, ubicación aproximada, dispositivo) para entender cómo se usa
+        el Sitio.</li>
+        <li><strong>Google AdSense</strong>: puede utilizar cookies para mostrar
+        publicidad, incluyendo anuncios personalizados según tu actividad de
+        navegación.</li>
+      </ul>
+
+      <h2>2. Cookies</h2>
+      <p>Podés desactivar las cookies publicitarias personalizadas desde la
+      <a href="https://adssettings.google.com/" target="_blank" rel="noopener">
+      configuración de anuncios de Google</a>, o bloquear cookies directamente desde
+      la configuración de tu navegador.</p>
+
+      <h2>3. Menores de edad</h2>
+      <p>El Sitio no está dirigido a menores de 13 años y no recolectamos a sabiendas
+      información de menores.</p>
+
+      <h2>4. Cambios en esta política</h2>
+      <p>Podemos actualizar esta política ocasionalmente. La fecha de "última
+      revisión" al inicio de esta página indica la versión vigente.</p>
+
+      <h2>5. Contacto</h2>
+      <p>Ante cualquier consulta sobre esta política, escribinos a
+      <strong>privacidad@confluye.com.ar</strong> (reemplazar por tu casilla real).</p>
+    </article>
+    """.strip()
+
+
+def render_faq() -> str:
+    preguntas = [
+        ("¿Qué es Confluye?",
+         f"{SITE_NAME} es un portal que reúne, en un solo lugar, los titulares de "
+         "distintos medios regionales, nacionales e internacionales, organizados por "
+         "categoría: Regional, Nacional, Economía, Deportes e Internacional."),
+        ("¿Por qué no puedo leer la nota completa acá?",
+         "Porque no la copiamos. Mostramos el título y un copete breve, y siempre "
+         "enlazamos a la nota completa en el sitio del medio que la publicó. Así "
+         "respetamos los derechos de autor de cada fuente y le damos el tráfico a "
+         "quien hizo el trabajo periodístico."),
+        ("¿Cada cuánto se actualizan las noticias?",
+         "El sitio se regenera automáticamente una vez por hora, las 24 horas."),
+        ("¿De dónde salen las noticias?",
+         "De los canales RSS públicos que cada medio publica. La lista completa de "
+         "fuentes por categoría está en nuestro aviso legal."),
+        ("Soy un medio y quiero que mis notas aparezcan en Confluye, ¿cómo hago?",
+         "Escribinos a contacto@confluye.com.ar (reemplazar por tu casilla real) con "
+         "el link a tu feed RSS público."),
+        ("Encontré un error o quiero pedir que bajen una nota, ¿qué hago?",
+         "Escribinos a legal@confluye.com.ar indicando la URL de la nota en "
+         "cuestión y lo resolvemos a la brevedad."),
+        ("¿Cómo hago publicidad en Confluye?",
+         "Escribinos a publicidad@confluye.com.ar (reemplazar por tu casilla real) "
+         "contándonos qué tipo de campaña tenés en mente."),
+    ]
+    items = "".join(
+        f'<details class="faq-item"><summary>{q}</summary><p>{a}</p></details>'
+        for q, a in preguntas
+    )
+    return f"""
+    <article class="legal">
+      <h1>Preguntas frecuentes</h1>
+      {items}
+    </article>
+    """.strip()
+
+
 def render_page(title: str, categories: dict, active: str, all_cats: list, ads_config: list) -> str:
     nav_categories = ["todas"] + all_cats
     nav_items = "".join(
@@ -349,6 +517,7 @@ def render_page(title: str, categories: dict, active: str, all_cats: list, ads_c
 {aside_right}
 </div>
 <footer class="site-footer">
+  {FOOTER_LINKS_HTML}
   <p>{SITE_NAME} agrega titulares de fuentes públicas y siempre enlaza a la nota original — no reproducimos el artículo completo.</p>
   <p>Última actualización: {updated}</p>
 </footer>
@@ -384,7 +553,29 @@ def main():
             render_page(label, single, cat_name, all_cats, ads_config), encoding="utf-8"
         )
 
-    print("Sitio generado en", OUT_DIR)
+    # Páginas institucionales
+    (OUT_DIR / "aviso-legal.html").write_text(
+        render_static_page("Aviso legal", render_aviso_legal(), all_cats,
+                            "Aviso legal, derechos de autor y condiciones de uso de " + SITE_NAME),
+        encoding="utf-8",
+    )
+    (OUT_DIR / "privacidad.html").write_text(
+        render_static_page("Política de privacidad", render_privacidad(), all_cats,
+                            "Política de privacidad y cookies de " + SITE_NAME),
+        encoding="utf-8",
+    )
+    (OUT_DIR / "preguntas-frecuentes.html").write_text(
+        render_static_page("Preguntas frecuentes", render_faq(), all_cats,
+                            "Preguntas frecuentes sobre " + SITE_NAME),
+        encoding="utf-8",
+    )
+
+    # ads.txt: obligatorio para que AdSense confirme quién puede vender
+    # publicidad en el dominio. Se arma solo con tu ID real de AdSense.
+    pub_id = ADSENSE_CLIENT_ID.replace("ca-pub-", "pub-")
+    (OUT_DIR / "ads.txt").write_text(
+        f"google.com, {pub_id}, DIRECT, f08c47fec0942fa0\n", encoding="utf-8"
+    )
 
     print("Sitio generado en", OUT_DIR)
 

@@ -305,6 +305,47 @@ main { max-width: 1180px; margin: 0 auto; padding: 30px 20px 10px; }
   border-top: 1px solid var(--border);
 }
 .site-footer p { margin: 4px 0; }
+.footer-links {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.footer-links a {
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 12px;
+}
+.footer-links a:hover { text-decoration: underline; }
+
+.static-page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 40px 20px 60px;
+  font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+.legal h1 { font-family: "Georgia", serif; font-size: 30px; margin-bottom: 6px; color: var(--ink); }
+.legal h2 { font-size: 18px; margin-top: 30px; color: var(--ink); border-bottom: 2px solid var(--border); padding-bottom: 6px; }
+.legal p, .legal li { font-size: 14.5px; line-height: 1.7; color: var(--text); }
+.legal ul { padding-left: 20px; }
+.legal a { color: var(--accent); }
+
+.faq-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 12px;
+}
+.faq-item summary {
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--ink);
+  font-size: 15px;
+}
+.faq-item p { margin: 10px 0 0; }
 
 @media (max-width: 560px) {
   .site-header h1 { font-size: 30px; }
