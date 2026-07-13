@@ -10,6 +10,8 @@
   --regional: #0f6e56;
   --nacional: #b3131f;
   --internacional: #1d5fa8;
+  --economia: #b8860b;
+  --deportes: #d35400;
 }
 
 * { box-sizing: border-box; }
@@ -52,8 +54,16 @@ body {
   text-align: center;
   border-bottom: 4px solid var(--ink);
 }
+.brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.logo-mark { width: 40px; height: 40px; flex-shrink: 0; }
 .site-header h1 {
-  margin: 0 0 8px;
+  margin: 0;
   font-size: 42px;
   font-weight: 900;
   letter-spacing: -0.01em;
@@ -175,6 +185,8 @@ main { max-width: 1180px; margin: 0 auto; padding: 30px 20px 10px; }
 .badge.cat-regional { background: var(--regional); }
 .badge.cat-nacional { background: var(--nacional); }
 .badge.cat-internacional { background: var(--internacional); }
+.badge.cat-economia { background: var(--economia); }
+.badge.cat-deportes { background: var(--deportes); }
 
 .card-body {
   padding: 16px 18px 18px;
@@ -233,11 +245,28 @@ main { max-width: 1180px; margin: 0 auto; padding: 30px 20px 10px; }
 .ad-slot {
   max-width: 1180px;
   margin: 10px auto 30px;
-  padding: 10px;
+  padding: 18px 10px;
   text-align: center;
-  border: 1px dashed var(--border);
-  border-radius: 8px;
+  background: repeating-linear-gradient(45deg, #f6f7f8, #f6f7f8 10px, #eef0f2 10px, #eef0f2 20px);
+  border: 1px solid var(--border);
+  border-radius: 10px;
   font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  min-height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ad-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: #fff;
+  border: 1px solid var(--border);
+  padding: 3px 10px;
+  border-radius: 999px;
 }
 
 .site-footer {

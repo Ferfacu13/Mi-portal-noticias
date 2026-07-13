@@ -22,10 +22,16 @@ SUMMARY_MAX_CHARS = 180
 REQUEST_TIMEOUT = 15
 
 # ---- Configuración editable ----
-SITE_NAME = "Portal Todo Noticias"
+SITE_NAME = "Confluye"
+SITE_TAGLINE = "Toda la noticia, en un solo lugar."
 GA_MEASUREMENT_ID = "G-XXXXXXXXXX"      # reemplazar por tu ID de Google Analytics 4
 ADSENSE_CLIENT_ID = "ca-pub-XXXXXXXXXXXXXXXX"  # reemplazar por tu ID de AdSense
 # ---------------------------------
+
+LOGO_SVG = """<svg class="logo-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <path d="M4 36C13 36 13 12 24 12C35 12 35 36 44 36" stroke="#fff" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+  <circle cx="24" cy="12" r="4.5" fill="#fff"/>
+</svg>"""
 
 
 def strip_tags(text: str) -> str:
@@ -153,6 +159,30 @@ def fetch_feed_items(feed_url: str):
     return items
 
 
+META_TAG_RE = re.compile(r"<meta\s+[^>]*>", re.IGNORECASE)
+CONTENT_ATTR_RE = re.compile(r'content=["\']([^"\']+)["\']', re.IGNORECASE)
+
+
+def fetch_og_image(article_url: str) -> str:
+    """Respaldo para feeds que no traen imagen: entra a la nota original y
+    busca la imagen destacada que el propio medio define para redes sociales
+    (og:image / twitter:image). Solo lee el principio del documento (donde
+    vive el <head>) para no descargar la página entera."""
+    try:
+        req = urllib.request.Request(article_url, headers={"User-Agent": "Mozilla/5.0 (NewsAggregatorBot/1.0)"})
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            data = resp.read(300_000)
+        text = data.decode("utf-8", errors="ignore")
+        for tag in META_TAG_RE.findall(text):
+            if "og:image" in tag or "twitter:image" in tag:
+                m = CONTENT_ATTR_RE.search(tag)
+                if m and m.group(1).startswith("http"):
+                    return m.group(1)
+    except Exception:
+        pass
+    return ""
+
+
 def build_category(name: str, sources: list) -> list:
     all_items = []
     for src in sources:
@@ -160,6 +190,8 @@ def build_category(name: str, sources: list) -> list:
             items = fetch_feed_items(src["url"])
             for it in items:
                 it["source"] = src["name"]
+                if not it.get("image"):
+                    it["image"] = fetch_og_image(it["link"])
             all_items.extend(items)
         except Exception as e:
             print(f"[WARN] Fallo el feed {src['name']} ({src['url']}): {e}")
@@ -168,6 +200,7 @@ def build_category(name: str, sources: list) -> list:
 
 AD_SLOT_HTML = """
 <div class="ad-slot" data-ad-format="auto">
+  <span class="ad-label">Publicidad</span>
   <ins class="adsbygoogle"
        style="display:block"
        data-ad-client="{client}"
@@ -180,14 +213,16 @@ AD_SLOT_HTML = """
 
 
 CATEGORY_META = {
-    "regional": {"label": "Regional", "class": "cat-regional"},
-    "nacional": {"label": "Nacional", "class": "cat-nacional"},
-    "internacional": {"label": "Internacional", "class": "cat-internacional"},
+    "regional": {"label": "Regional", "class": "cat-regional", "icon": "📍"},
+    "nacional": {"label": "Nacional", "class": "cat-nacional", "icon": "🇦🇷"},
+    "economia": {"label": "Economía", "class": "cat-economia", "icon": "💵"},
+    "deportes": {"label": "Deportes", "class": "cat-deportes", "icon": "🏆"},
+    "internacional": {"label": "Internacional", "class": "cat-internacional", "icon": "🌎"},
 }
 
 
 def render_article(item: dict, cat_name: str) -> str:
-    cat = CATEGORY_META.get(cat_name, {"label": cat_name.capitalize(), "class": "cat-regional"})
+    cat = CATEGORY_META.get(cat_name, {"label": cat_name.capitalize(), "class": "cat-regional", "icon": "📰"})
     if item.get("image"):
         media_html = f'<img src="{html.escape(item["image"])}" alt="" loading="lazy" onerror="this.parentElement.classList.add(\'no-img\'); this.remove();">'
     else:
@@ -212,10 +247,12 @@ def render_article(item: dict, cat_name: str) -> str:
     """.strip()
 
 
-def render_page(title: str, categories: dict, active: str) -> str:
+def render_page(title: str, categories: dict, active: str, all_cats: list) -> str:
+    nav_categories = ["todas"] + all_cats
     nav_items = "".join(
-        f'<a href="{"index.html" if c == "todas" else c + ".html"}" class="{"active" if c == active else ""}">{c.capitalize()}</a>'
-        for c in ["todas", "regional", "nacional", "internacional"]
+        f'<a href="{"index.html" if c == "todas" else c + ".html"}" class="{"active" if c == active else ""}">'
+        f'{"Todas" if c == "todas" else CATEGORY_META.get(c, {"label": c.capitalize()})["label"]}</a>'
+        for c in nav_categories
     )
 
     sections = []
@@ -223,10 +260,10 @@ def render_page(title: str, categories: dict, active: str) -> str:
         if not items:
             continue
         cards = "".join(render_article(it, cat_name) for it in items)
-        icon = {"regional": "📍", "nacional": "🇦🇷", "internacional": "🌎"}.get(cat_name, "📰")
+        meta = CATEGORY_META.get(cat_name, {"label": cat_name.capitalize(), "icon": "📰"})
         sections.append(
             f'<section class="category"><div class="category-head">'
-            f'<h2><span class="cat-icon">{icon}</span>{cat_name.capitalize()}</h2>'
+            f'<h2><span class="cat-icon">{meta["icon"]}</span>{meta["label"]}</h2>'
             f'<span class="category-line"></span></div>'
             f'<div class="grid">{cards}</div></section>'
         )
@@ -243,7 +280,7 @@ def render_page(title: str, categories: dict, active: str) -> str:
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{title} - {SITE_NAME}</title>
-<meta name="description" content="Agregador automático de noticias regionales, nacionales e internacionales.">
+<meta name="description" content="Noticias regionales, nacionales, economía, deportes e internacionales, actualizadas automáticamente.">
 <link rel="stylesheet" href="style.css">
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={ADSENSE_CLIENT_ID}" crossorigin="anonymous"></script>
 <script async src="https://www.googletagmanager.com/gtag/js?id={GA_MEASUREMENT_ID}"></script>
@@ -260,8 +297,11 @@ def render_page(title: str, categories: dict, active: str) -> str:
   <span class="topbar-live"><span class="dot"></span> Actualizado {updated}</span>
 </div>
 <header class="site-header">
-  <h1>{SITE_NAME}</h1>
-  <p class="tagline">Noticias regionales, nacionales e internacionales, actualizadas automáticamente cada hora.</p>
+  <div class="brand">
+    {LOGO_SVG}
+    <h1>{SITE_NAME}</h1>
+  </div>
+  <p class="tagline">{SITE_TAGLINE}</p>
   <nav>{nav_items}</nav>
 </header>
 {AD_SLOT_HTML.format(client=ADSENSE_CLIENT_ID)}
@@ -288,13 +328,16 @@ def main():
         print(f"Procesando categoría: {cat_name}")
         categories[cat_name] = build_category(cat_name, sources)
 
+    all_cats = list(feeds.keys())
+
     # Página "todas" (index)
-    (OUT_DIR / "index.html").write_text(render_page("Inicio", categories, "todas"), encoding="utf-8")
+    (OUT_DIR / "index.html").write_text(render_page("Inicio", categories, "todas", all_cats), encoding="utf-8")
 
     # Páginas por categoría
     for cat_name in categories:
         single = {cat_name: categories[cat_name]}
-        (OUT_DIR / f"{cat_name}.html").write_text(render_page(cat_name.capitalize(), single, cat_name), encoding="utf-8")
+        label = CATEGORY_META.get(cat_name, {"label": cat_name.capitalize()})["label"]
+        (OUT_DIR / f"{cat_name}.html").write_text(render_page(label, single, cat_name, all_cats), encoding="utf-8")
 
     print("Sitio generado en", OUT_DIR)
 

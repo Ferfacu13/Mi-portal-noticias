@@ -8,6 +8,16 @@
     { "name": "Clarín", "url": "https://www.clarin.com/rss/lo-ultimo/" },
     { "name": "La Nación", "url": "https://www.lanacion.com.ar/arc/outboundfeeds/rss/" }
   ],
+  "economia": [
+    { "name": "Infobae Economía", "url": "https://www.infobae.com/feeds/rss/economia/" },
+    { "name": "Ámbito Financiero", "url": "https://www.ambito.com/rss/pages/economia.xml" },
+    { "name": "iProfesional", "url": "https://www.iprofesional.com/rss/economia" }
+  ],
+  "deportes": [
+    { "name": "TyC Sports", "url": "https://www.tycsports.com/rss/portada.xml" },
+    { "name": "Olé", "url": "https://www.ole.com.ar/rss/ultimas-noticias/" },
+    { "name": "ESPN Argentina", "url": "https://www.espn.com.ar/espn/rss/news" }
+  ],
   "internacional": [
     { "name": "BBC Mundo", "url": "https://feeds.bbci.co.uk/mundo/rss.xml" },
     { "name": "Reuters World", "url": "https://feeds.reuters.com/Reuters/worldNews" }
