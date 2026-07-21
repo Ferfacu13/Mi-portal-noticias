@@ -39,8 +39,14 @@ FOOTER_LINKS_HTML = (
     '<a href="aviso-legal.html">Aviso legal y derechos de autor</a>'
     '<a href="privacidad.html">Política de privacidad</a>'
     '<a href="preguntas-frecuentes.html">Preguntas frecuentes</a>'
+    '<a href="pauta-publicitaria.html">Pautá con nosotros</a>'
     '</nav>'
 )
+
+# ---- Datos editables de la propuesta comercial ----
+CONTACTO_PUBLICIDAD_EMAIL = "publicidad@confluye.com.ar"  # reemplazar por tu casilla real
+CONTACTO_PUBLICIDAD_WHATSAPP = ""  # opcional: ej. "https://wa.me/549XXXXXXXXXX"
+# ---------------------------------------------------
 
 
 def strip_tags(text: str) -> str:
@@ -442,6 +448,67 @@ def render_faq() -> str:
     """.strip()
 
 
+def render_pauta_publicitaria() -> str:
+    contacto_html = f'<a href="mailto:{CONTACTO_PUBLICIDAD_EMAIL}">{CONTACTO_PUBLICIDAD_EMAIL}</a>'
+    if CONTACTO_PUBLICIDAD_WHATSAPP:
+        contacto_html += (
+            f' &nbsp;|&nbsp; <a href="{CONTACTO_PUBLICIDAD_WHATSAPP}" target="_blank" '
+            f'rel="noopener">WhatsApp</a>'
+        )
+
+    return f"""
+    <article class="legal pauta">
+      <h1>Pautá con nosotros</h1>
+      <p>{SITE_NAME} reúne en un solo lugar las noticias regionales, nacionales,
+      de economía, deportes e internacionales que la gente lee todos los días.
+      Si tu marca o negocio quiere llegar a esa audiencia, tenés varios formatos
+      para elegir.</p>
+
+      <h2>Formatos disponibles</h2>
+      <ul>
+        <li><strong>Banner superior</strong>: debajo del encabezado, visible en
+        cualquier sección que elijas.</li>
+        <li><strong>Banner entre noticias (in-feed)</strong>: integrado entre las
+        tarjetas de noticias, con buena visibilidad sin resultar invasivo.</li>
+        <li><strong>Banner lateral (sidebar)</strong>: acompaña la lectura en
+        columna izquierda o derecha, en desktop.</li>
+        <li><strong>Mención patrocinada en el newsletter</strong>: recomendación
+        directa a nuestra base de suscriptores por email.</li>
+      </ul>
+
+      <h2>¿Por qué pautar acá?</h2>
+      <ul>
+        <li>Audiencia segmentada por categoría (por ejemplo, podés pautar solo
+        en la sección Deportes si tu producto es de ese rubro).</li>
+        <li>Contenido que se actualiza todo el día, sin costo de producción de tu parte.</li>
+        <li>Contacto directo con quien administra el sitio: sin intermediarios
+        ni mínimos de inversión imposibles para una pyme o negocio local.</li>
+      </ul>
+
+      <h2>Cómo arrancar</h2>
+      <p>Escribinos contándonos tu rubro, el formato que te interesa y el
+      tiempo de campaña que tenés en mente, y te mandamos una propuesta a medida:</p>
+      <p class="pauta-contacto">{contacto_html}</p>
+
+      <h2>Preguntas frecuentes sobre publicidad</h2>
+      <details class="faq-item">
+        <summary>¿Cuál es la inversión mínima?</summary>
+        <p>Depende del formato y la duración. Contanos tu presupuesto y vemos
+        qué opción se ajusta mejor.</p>
+      </details>
+      <details class="faq-item">
+        <summary>¿Puedo pautar solo en una sección (por ejemplo, Deportes)?</summary>
+        <p>Sí, los espacios se pueden configurar por sección.</p>
+      </details>
+      <details class="faq-item">
+        <summary>¿Con cuánta anticipación tengo que reservar el espacio?</summary>
+        <p>Cuanto antes nos escribas, mejor podemos coordinar fechas, pero
+        consultanos igual aunque sea para la semana que viene.</p>
+      </details>
+    </article>
+    """.strip()
+
+
 def render_page(title: str, categories: dict, active: str, all_cats: list, ads_config: list) -> str:
     nav_categories = ["todas"] + all_cats
     nav_items = "".join(
@@ -567,6 +634,11 @@ def main():
     (OUT_DIR / "preguntas-frecuentes.html").write_text(
         render_static_page("Preguntas frecuentes", render_faq(), all_cats,
                             "Preguntas frecuentes sobre " + SITE_NAME),
+        encoding="utf-8",
+    )
+    (OUT_DIR / "pauta-publicitaria.html").write_text(
+        render_static_page("Pautá con nosotros", render_pauta_publicitaria(), all_cats,
+                            "Espacios publicitarios y patrocinios en " + SITE_NAME),
         encoding="utf-8",
     )
 
